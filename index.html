@@ -1357,7 +1357,7 @@
   <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="setup-title">
     <div class="setup-card">
       <h1 class="setup-title" id="setup-title">Set countdown</h1>
-      <p class="setup-subtitle">The countdown will continue after refresh until completion. Use the passkey to reset it later.</p>
+      <p class="setup-subtitle">The countdown persists across refreshes and can sync across devices when Supabase is configured. Use the passkey to reset it later.</p>
 
       <form class="form" id="countdown-form">
         <div class="field-grid">
@@ -1412,8 +1412,33 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
     const STORAGE_KEY = 'executive_countdown_state_v2';
+
+    // Replace these with your real Supabase project values.
+    // Keep the anon/publishable key only. Never use the service_role key in the browser.
+    const SUPABASE_URL = 'https://ktkzmgmfjaeqowcoknfq.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_FgguM3IrP6DfIqZF6hm2QQ_sVAv8ogt';
+    const SUPABASE_COUNTDOWN_ID = 'global-default';
+    const COUNTDOWNS_TABLE = 'countdowns';
+
+    const HAS_SUPABASE_CONFIG =
+      SUPABASE_URL &&
+      SUPABASE_ANON_KEY &&
+      SUPABASE_URL !== 'YOUR_SUPABASE_URL' &&
+      SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY';
+
+    const supabase = HAS_SUPABASE_CONFIG
+      ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false,
+          },
+        })
+      : null;
 
     const bootLoader = document.getElementById('boot-loader');
     const bootLoaderPercent = document.getElementById('boot-loader-percent');
@@ -1467,12 +1492,19 @@
     let previousTimeParts = { hours: 0, minutes: 0, seconds: 0 };
 
     function runBootLoader() {
-      const loaderMessages = [
-        'Preparing your executive countdown experience…',
-        'Restoring countdown state and layout…',
-        'Loading sound, timeline, and progress states…',
-        'Almost ready…'
-      ];
+      const loaderMessages = HAS_SUPABASE_CONFIG
+        ? [
+            'Preparing your executive countdown experience…',
+            'Syncing countdown state from Supabase…',
+            'Loading sound, timeline, and progress states…',
+            'Almost ready…',
+          ]
+        : [
+            'Preparing your executive countdown experience…',
+            'Restoring local countdown state and layout…',
+            'Loading sound, timeline, and progress states…',
+            'Almost ready…',
+          ];
 
       const duration = 2200;
       const start = performance.now();
@@ -1514,31 +1546,90 @@
       return plusOneHour.toISOString().slice(0, 16);
     }
 
-    function persistCountdownState() {
-      if (!targetDate || !countdownStartTime || !resetPasskeyHash) return;
+    function normalizeCountdownState(state) {
+      if (!state) return null;
 
-      const payload = {
-        goal: activeGoal,
-        note: activeGoalNote,
-        targetDateISO: targetDate.toISOString(),
-        countdownStartTime,
-        totalDurationMs,
-        resetPasskeyHash
+      return {
+        goal: state.goal || '',
+        note: state.note || '',
+        targetDateISO: state.targetDateISO || state.target_date || '',
+        countdownStartTime: Number(state.countdownStartTime || state.countdown_start_time || 0),
+        totalDurationMs: Number(state.totalDurationMs || state.total_duration_ms || 0),
+        resetPasskeyHash: state.resetPasskeyHash || state.reset_passkey_hash || '',
       };
+    }
+
+    async function persistCountdownState(state = null) {
+      const payload = normalizeCountdownState(
+        state || {
+          goal: activeGoal,
+          note: activeGoalNote,
+          targetDateISO: targetDate?.toISOString?.() || '',
+          countdownStartTime,
+          totalDurationMs,
+          resetPasskeyHash,
+        }
+      );
+
+      if (!payload?.targetDateISO || !payload?.countdownStartTime || !payload?.resetPasskeyHash) return;
+
+      if (HAS_SUPABASE_CONFIG) {
+        const { error } = await supabase.from(COUNTDOWNS_TABLE).upsert(
+          {
+            id: SUPABASE_COUNTDOWN_ID,
+            goal: payload.goal,
+            note: payload.note,
+            target_date: payload.targetDateISO,
+            countdown_start_time: new Date(payload.countdownStartTime).toISOString(),
+            total_duration_ms: payload.totalDurationMs,
+            reset_passkey_hash: payload.resetPasskeyHash,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'id' }
+        );
+
+        if (error) {
+          throw error;
+        }
+        return;
+      }
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     }
 
-    function readPersistedCountdownState() {
+    async function readPersistedCountdownState() {
+      if (HAS_SUPABASE_CONFIG) {
+        const { data, error } = await supabase
+          .from(COUNTDOWNS_TABLE)
+          .select('id, goal, note, target_date, countdown_start_time, total_duration_ms, reset_passkey_hash')
+          .eq('id', SUPABASE_COUNTDOWN_ID)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Supabase read failed:', error);
+          return null;
+        }
+
+        return normalizeCountdownState(data);
+      }
+
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        return raw ? JSON.parse(raw) : null;
+        return raw ? normalizeCountdownState(JSON.parse(raw)) : null;
       } catch {
         return null;
       }
     }
 
-    function clearPersistedCountdownState() {
+    async function clearPersistedCountdownState() {
+      if (HAS_SUPABASE_CONFIG) {
+        const { error } = await supabase.from(COUNTDOWNS_TABLE).delete().eq('id', SUPABASE_COUNTDOWN_ID);
+        if (error) {
+          console.error('Supabase delete failed:', error);
+        }
+        return;
+      }
+
       localStorage.removeItem(STORAGE_KEY);
     }
 
@@ -1607,7 +1698,7 @@
       const settings = {
         second: { attackGain: 0.1, bodyGain: 0.028, lowGain: 0.018, attackDuration: 0.014, bodyDuration: 0.05, noiseBand: 2200, bodyFreq: 920, lowFreq: 180, tailDelay: 0.006 },
         minute: { attackGain: 0.14, bodyGain: 0.04, lowGain: 0.026, attackDuration: 0.017, bodyDuration: 0.065, noiseBand: 2050, bodyFreq: 760, lowFreq: 160, tailDelay: 0.008 },
-        hour: { attackGain: 0.17, bodyGain: 0.05, lowGain: 0.032, attackDuration: 0.02, bodyDuration: 0.08, noiseBand: 1850, bodyFreq: 620, lowFreq: 145, tailDelay: 0.01 }
+        hour: { attackGain: 0.17, bodyGain: 0.05, lowGain: 0.032, attackDuration: 0.02, bodyDuration: 0.08, noiseBand: 1850, bodyFreq: 620, lowFreq: 145, tailDelay: 0.01 },
       }[kind];
 
       const noiseSource = audioContext.createBufferSource();
@@ -1754,7 +1845,9 @@
       if (!countdownStartTime || totalDurationMs <= 0) {
         progressValueEl.textContent = '0.0%';
         progressFillEl.style.width = '0%';
-        progressCaptionEl.textContent = 'The progress bar will start updating live when the countdown begins.';
+        progressCaptionEl.textContent = HAS_SUPABASE_CONFIG
+          ? 'The progress bar updates from your shared Supabase countdown.'
+          : 'The progress bar will start updating live when the countdown begins.';
         statStatusEl.textContent = '0 days left';
         return;
       }
@@ -1784,7 +1877,7 @@
         month: 'long',
         day: 'numeric',
         hour: 'numeric',
-        minute: '2-digit'
+        minute: '2-digit',
       });
     }
 
@@ -1797,7 +1890,7 @@
         goalNoteEl.textContent = activeGoalNote;
         goalNoteEl.classList.remove('is-empty');
       } else {
-        goalNoteEl.textContent = '\u00A0';
+        goalNoteEl.textContent = ' ';
         goalNoteEl.classList.add('is-empty');
       }
     }
@@ -1856,15 +1949,17 @@
     }
 
     function applyCountdownState(state) {
-      activeGoal = state.goal || '';
-      activeGoalNote = state.note || '';
-      targetDate = new Date(state.targetDateISO);
-      countdownStartTime = Number(state.countdownStartTime || Date.now());
-      totalDurationMs = Number(state.totalDurationMs || Math.max(0, targetDate.getTime() - countdownStartTime));
-      resetPasskeyHash = state.resetPasskeyHash || '';
+      const normalized = normalizeCountdownState(state);
+      if (!normalized?.targetDateISO) return false;
+
+      activeGoal = normalized.goal;
+      activeGoalNote = normalized.note;
+      targetDate = new Date(normalized.targetDateISO);
+      countdownStartTime = Number(normalized.countdownStartTime || Date.now());
+      totalDurationMs = Number(normalized.totalDurationMs || Math.max(0, targetDate.getTime() - countdownStartTime));
+      resetPasskeyHash = normalized.resetPasskeyHash || '';
 
       if (Number.isNaN(targetDate.getTime())) {
-        clearPersistedCountdownState();
         return false;
       }
 
@@ -1880,13 +1975,14 @@
     }
 
     async function startCountdown(state) {
-      applyCountdownState(state);
-      persistCountdownState();
+      const applied = applyCountdownState(state);
+      if (!applied) return;
+      await persistCountdownState(state);
       initClockAudio();
       await resumeClockAudio();
     }
 
-    function resetToInitialView() {
+    async function resetToInitialView() {
       if (countdownInterval) {
         clearInterval(countdownInterval);
         countdownInterval = null;
@@ -1914,7 +2010,7 @@
       timerShell.classList.remove('live', 'complete');
       showSetup();
       hideResetOverlay();
-      clearPersistedCountdownState();
+      await clearPersistedCountdownState();
     }
 
     soundToggle.addEventListener('click', async () => {
@@ -1950,7 +2046,7 @@
         return;
       }
 
-      resetToInitialView();
+      await resetToInitialView();
     });
 
     form.addEventListener('submit', async (event) => {
@@ -1994,13 +2090,13 @@
         targetDateISO: selected.toISOString(),
         countdownStartTime: countdownStartedAt,
         totalDurationMs: Math.max(0, selected.getTime() - countdownStartedAt),
-        resetPasskeyHash: await hashText(passkeyValue)
+        resetPasskeyHash: await hashText(passkeyValue),
       };
 
       await startCountdown(payload);
     });
 
-    (function init() {
+    async function init() {
       dateInput.value = getDefaultLocalDateTime();
       goalInput.value = '';
       goalNoteInput.value = '';
@@ -2013,15 +2109,21 @@
       updateProgressUI(0);
       updateHeroUI();
 
-      const savedState = readPersistedCountdownState();
+      const savedState = await readPersistedCountdownState();
       if (savedState && savedState.targetDateISO && savedState.resetPasskeyHash) {
-        applyCountdownState(savedState);
+        const restored = applyCountdownState(savedState);
+        if (!restored) {
+          await clearPersistedCountdownState();
+          showSetup();
+        }
       } else {
         showSetup();
       }
 
       runBootLoader();
-    })();
+    }
+
+    init();
   </script>
 </body>
 </html>

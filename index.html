@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Executive Countdown Experience</title>
+  <title>Countdown that Never Stops</title>
   <style>
     :root {
       --bg: #000000;
@@ -18,6 +18,7 @@
       --muted: rgba(255, 255, 255, 0.62);
       --muted-soft: rgba(255, 255, 255, 0.44);
       --muted-faint: rgba(255, 255, 255, 0.32);
+      --danger: #ff5a52;
       --shadow-lg: 0 30px 120px rgba(0, 0, 0, 0.72);
       --shadow-md: 0 18px 56px rgba(255, 255, 255, 0.06);
       --shadow-sm: 0 10px 30px rgba(0, 0, 0, 0.35);
@@ -36,8 +37,6 @@
       --timer-gap: clamp(0.7rem, 2vw, 1.9rem);
       --ease-smooth: cubic-bezier(0.22, 0.61, 0.36, 1);
       --accent: rgba(255, 255, 255, 0.96);
-      --accent-soft: rgba(255, 255, 255, 0.82);
-      --highlight: rgba(255, 255, 255, 0.12);
     }
 
     * { box-sizing: border-box; }
@@ -220,8 +219,6 @@
       gap: 14px;
     }
 
-    
-
     .goal-title {
       margin: 0;
       max-width: 1100px;
@@ -332,20 +329,16 @@
     .segment {
       flex: 0 0 auto;
       min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: clamp(12px, 1.4vw, 16px);
     }
 
     .segment-hours,
     .segment-minutes,
     .segment-seconds {
       min-width: fit-content;
-    }
-
-    .segment {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: clamp(12px, 1.4vw, 16px);
-      min-width: 0;
     }
 
     .digits {
@@ -470,19 +463,6 @@
       width: min(100%, 920px);
     }
 
-    .days-left {
-      font-size: var(--days-size);
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      color: rgba(255, 255, 255, 0.95);
-      text-shadow: 0 0 24px rgba(255,255,255,0.08);
-      opacity: 0;
-      transform: translateY(10px);
-      animation: fadeUp 700ms 140ms var(--ease-smooth) forwards;
-    }
-
-    
-
     .progress-wrap {
       width: min(100%, 860px);
       display: flex;
@@ -561,11 +541,19 @@
       text-align: left;
     }
 
-    .sound-toggle {
+    .floating-actions {
       position: fixed;
       right: clamp(14px, 2vw, 24px);
       bottom: clamp(14px, 2vw, 24px);
       z-index: 35;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .glass-button {
       display: inline-flex;
       align-items: center;
       gap: 10px;
@@ -583,16 +571,16 @@
       transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
     }
 
-    .sound-toggle:hover {
+    .glass-button:hover {
       transform: translateY(-1px);
       background: rgba(255, 255, 255, 0.055);
       border-color: rgba(255, 255, 255, 0.18);
       box-shadow: 0 16px 38px rgba(0, 0, 0, 0.4);
     }
 
-    .sound-toggle:active { transform: translateY(0); }
+    .glass-button:active { transform: translateY(0); }
 
-    .sound-toggle:focus-visible {
+    .glass-button:focus-visible {
       outline: 2px solid rgba(255, 255, 255, 0.24);
       outline-offset: 3px;
     }
@@ -633,7 +621,7 @@
       opacity: 1;
     }
 
-    .sound-toggle.is-muted .sound-toggle__icon::after {
+    .glass-button.is-muted .sound-toggle__icon::after {
       opacity: 0;
       transform: rotate(45deg) scale(0.7);
     }
@@ -644,7 +632,7 @@
       top: -1px;
       width: 2px;
       height: 20px;
-      background: #ff5a52;
+      background: var(--danger);
       border-radius: 999px;
       transform: rotate(45deg) scale(0.82);
       opacity: 0;
@@ -652,17 +640,40 @@
       transition: opacity 180ms ease, transform 180ms ease;
     }
 
-    .sound-toggle.is-muted .sound-toggle__slash {
+    .glass-button.is-muted .sound-toggle__slash {
       opacity: 1;
       transform: rotate(45deg) scale(1);
     }
 
-    .sound-toggle__label {
+    .button-label {
       font-size: 0.86rem;
       font-weight: 600;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       white-space: nowrap;
+    }
+
+    .reset-icon {
+      width: 16px;
+      height: 16px;
+      display: inline-block;
+      position: relative;
+      border: 2px solid rgba(255,255,255,0.92);
+      border-right-color: transparent;
+      border-radius: 999px;
+      transform: rotate(-20deg);
+    }
+
+    .reset-icon::after {
+      content: "";
+      position: absolute;
+      top: -4px;
+      right: -2px;
+      width: 6px;
+      height: 6px;
+      border-top: 2px solid rgba(255,255,255,0.92);
+      border-right: 2px solid rgba(255,255,255,0.92);
+      transform: rotate(12deg);
     }
 
     .overlay {
@@ -695,8 +706,6 @@
       text-align: left;
     }
 
-    
-
     .setup-title {
       margin: 0 0 16px;
       font-size: clamp(1.55rem, 3.6vw, 2.25rem);
@@ -705,7 +714,12 @@
       color: var(--text);
     }
 
-    
+    .setup-subtitle {
+      margin: 0 0 16px;
+      font-size: 0.96rem;
+      line-height: 1.55;
+      color: var(--muted);
+    }
 
     .form {
       margin-top: 24px;
@@ -726,7 +740,8 @@
     }
 
     .field input,
-    .field textarea {
+    .field textarea,
+    .field .masked-input {
       width: 100%;
       appearance: none;
       border: 1px solid rgba(255,255,255,0.12);
@@ -747,7 +762,8 @@
     }
 
     .field input:focus,
-    .field textarea:focus {
+    .field textarea:focus,
+    .field .masked-input:focus {
       border-color: rgba(255,255,255,0.28);
       box-shadow: 0 0 0 4px rgba(255,255,255,0.06);
       background: rgba(255,255,255,0.06);
@@ -771,18 +787,28 @@
       margin-top: 6px;
     }
 
-    .button {
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .button,
+    .ghost-button {
       border: none;
       outline: none;
       border-radius: 18px;
       padding: 16px 20px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.99), rgba(255,255,255,0.86));
-      color: #050505;
       font-size: 1rem;
       font-weight: 800;
       letter-spacing: -0.02em;
       cursor: pointer;
-      transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+      transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease, background 180ms ease, border-color 180ms ease;
+    }
+
+    .button {
+      background: linear-gradient(180deg, rgba(255,255,255,0.99), rgba(255,255,255,0.86));
+      color: #050505;
       box-shadow: 0 18px 40px rgba(255,255,255,0.12);
     }
 
@@ -792,7 +818,19 @@
       filter: brightness(1.02);
     }
 
-    .button:active { transform: translateY(0); }
+    .ghost-button {
+      background: rgba(255,255,255,0.04);
+      color: rgba(255,255,255,0.9);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .ghost-button:hover {
+      background: rgba(255,255,255,0.06);
+      transform: translateY(-1px);
+    }
+
+    .button:active,
+    .ghost-button:active { transform: translateY(0); }
 
     .hint,
     .error {
@@ -866,7 +904,6 @@
         --timer-gap: clamp(0.72rem, 2.6vw, 1.2rem);
         --digit-gap: clamp(0.32rem, 1.1vw, 0.5rem);
         --label-size: 0.52rem;
-        --days-size: clamp(0.98rem, 3.8vw, 1.35rem);
         --hero-title: clamp(1.5rem, 7.2vw, 2.3rem);
         --hero-note: clamp(0.9rem, 3.6vw, 1rem);
       }
@@ -972,7 +1009,8 @@
       }
 
       .field input,
-      .field textarea {
+      .field textarea,
+      .field .masked-input {
         padding: 15px 14px;
         font-size: 0.96rem;
         border-radius: 10px;
@@ -982,7 +1020,12 @@
         min-height: 96px;
       }
 
-      .button {
+      .button-row {
+        flex-direction: column;
+      }
+
+      .button,
+      .ghost-button {
         width: 100%;
         padding: 15px 18px;
       }
@@ -1005,6 +1048,12 @@
 
       .progress-caption {
         font-size: 0.82rem;
+      }
+
+      .floating-actions {
+        right: 10px;
+        bottom: 10px;
+        gap: 8px;
       }
     }
 
@@ -1118,15 +1167,13 @@
         line-height: 1.4;
       }
 
-      .sound-toggle {
-        right: 10px;
-        bottom: 10px;
+      .glass-button {
         min-height: 40px;
         padding: 9px 12px;
         gap: 7px;
       }
 
-      .sound-toggle__label {
+      .button-label {
         font-size: 0.72rem;
         letter-spacing: 0.04em;
       }
@@ -1147,7 +1194,8 @@
       }
 
       .field input,
-      .field textarea {
+      .field textarea,
+      .field .masked-input {
         padding: 14px 13px;
         font-size: 0.92rem;
       }
@@ -1198,11 +1246,11 @@
         margin-inline: 0.14rem;
       }
 
-      .sound-toggle__label {
+      .button-label {
         display: none;
       }
 
-      .sound-toggle {
+      .glass-button {
         min-width: 40px;
         justify-content: center;
         padding: 9px 10px;
@@ -1238,8 +1286,8 @@
   <main class="app">
     <section class="content is-idle" id="content">
       <section class="hero" aria-label="Goal summary">
-        <h1 class="goal-title" id="goal-title">Your next milestone starts here</h1>
-        <p class="goal-note" id="goal-note">Set a clear objective, choose your deadline, and track execution with a premium live countdown designed for product demos, launches, and executive reviews.</p>
+        <h1 class="goal-title" id="goal-title">Countdown that Never Stops</h1>
+        <p class="goal-note" id="goal-note">&nbsp;</p>
         <div class="hero-stats">
           <div class="stat-card">
             <div class="stat-label">Goal</div>
@@ -1280,7 +1328,6 @@
         </section>
 
         <div class="meta">
-          
           <div class="progress-wrap" aria-live="polite">
             <div class="progress-head">
               <div class="progress-label">Completion Progress</div>
@@ -1296,14 +1343,21 @@
     </section>
   </main>
 
-  <button class="sound-toggle" id="sound-toggle" type="button" aria-pressed="true" aria-label="Turn sound off">
-    <span class="sound-toggle__icon" aria-hidden="true"><span class="sound-toggle__slash"></span></span>
-    <span class="sound-toggle__label" id="sound-toggle-label">Sound On</span>
-  </button>
+  <div class="floating-actions">
+    <button class="glass-button sound-toggle" id="sound-toggle" type="button" aria-pressed="true" aria-label="Turn sound off">
+      <span class="sound-toggle__icon" aria-hidden="true"><span class="sound-toggle__slash"></span></span>
+      <span class="button-label" id="sound-toggle-label">Sound On</span>
+    </button>
+    <button class="glass-button" id="reset-toggle" type="button" aria-label="Reset countdown">
+      <span class="reset-icon" aria-hidden="true"></span>
+      <span class="button-label">Reset</span>
+    </button>
+  </div>
 
   <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="setup-title">
     <div class="setup-card">
       <h1 class="setup-title" id="setup-title">Set countdown</h1>
+      <p class="setup-subtitle">The countdown will continue after refresh until completion. Use the passkey to reset it later.</p>
 
       <form class="form" id="countdown-form">
         <div class="field-grid">
@@ -1321,6 +1375,11 @@
             <label for="target-datetime">Target date and time</label>
             <input id="target-datetime" name="target-datetime" type="datetime-local" required />
           </div>
+
+          <div class="field">
+            <label for="reset-passkey-input">Reset passkey</label>
+            <input id="reset-passkey-input" name="reset-passkey-input" type="password" minlength="4" maxlength="64" required />
+          </div>
         </div>
 
         <div class="form-footer">
@@ -1331,24 +1390,54 @@
     </div>
   </div>
 
+  <div class="overlay hidden" id="reset-overlay" role="dialog" aria-modal="true" aria-labelledby="reset-title">
+    <div class="setup-card">
+      <h2 class="setup-title" id="reset-title">Reset countdown</h2>
+      <p class="setup-subtitle">Enter the passkey to clear the saved countdown and start again.</p>
+
+      <form class="form" id="reset-form">
+        <div class="field">
+          <label for="reset-passkey-verify">Passkey</label>
+          <input id="reset-passkey-verify" class="masked-input" type="password" minlength="4" maxlength="64" required />
+        </div>
+
+        <div class="form-footer">
+          <div class="button-row">
+            <button class="button" type="submit">Confirm Reset</button>
+            <button class="ghost-button" id="cancel-reset" type="button">Cancel</button>
+          </div>
+          <div class="error" id="reset-error" aria-live="polite"></div>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
+    const STORAGE_KEY = 'executive_countdown_state_v2';
+
     const bootLoader = document.getElementById('boot-loader');
     const bootLoaderPercent = document.getElementById('boot-loader-percent');
     const bootLoaderBar = document.getElementById('boot-loader-bar');
     const bootLoaderCopy = document.getElementById('boot-loader-copy');
 
     const overlay = document.getElementById('overlay');
+    const resetOverlay = document.getElementById('reset-overlay');
     const form = document.getElementById('countdown-form');
+    const resetForm = document.getElementById('reset-form');
     const goalInput = document.getElementById('goal-input');
     const goalNoteInput = document.getElementById('goal-note-input');
     const dateInput = document.getElementById('target-datetime');
+    const resetPasskeyInput = document.getElementById('reset-passkey-input');
+    const resetPasskeyVerify = document.getElementById('reset-passkey-verify');
     const formError = document.getElementById('form-error');
+    const resetError = document.getElementById('reset-error');
+    const cancelResetButton = document.getElementById('cancel-reset');
 
     const content = document.getElementById('content');
     const timerShell = document.getElementById('timer-shell');
-    const statusChip = document.getElementById('status-chip');
     const soundToggle = document.getElementById('sound-toggle');
     const soundToggleLabel = document.getElementById('sound-toggle-label');
+    const resetToggle = document.getElementById('reset-toggle');
     const progressValueEl = document.getElementById('progress-value');
     const progressFillEl = document.getElementById('progress-fill');
     const progressCaptionEl = document.getElementById('progress-caption');
@@ -1374,17 +1463,18 @@
     let totalDurationMs = 0;
     let activeGoal = '';
     let activeGoalNote = '';
+    let resetPasskeyHash = '';
     let previousTimeParts = { hours: 0, minutes: 0, seconds: 0 };
 
     function runBootLoader() {
       const loaderMessages = [
         'Preparing your executive countdown experience…',
-        'Calibrating visual hierarchy and motion…',
+        'Restoring countdown state and layout…',
         'Loading sound, timeline, and progress states…',
         'Almost ready…'
       ];
 
-      const duration = 2600;
+      const duration = 2200;
       const start = performance.now();
 
       function frame(now) {
@@ -1405,6 +1495,51 @@
       }
 
       requestAnimationFrame(frame);
+    }
+
+    function arrayBufferToHex(buffer) {
+      return Array.from(new Uint8Array(buffer)).map((b) => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function hashText(value) {
+      const data = new TextEncoder().encode(value);
+      const digest = await crypto.subtle.digest('SHA-256', data);
+      return arrayBufferToHex(digest);
+    }
+
+    function getDefaultLocalDateTime() {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      const plusOneHour = new Date(now.getTime() + 60 * 60 * 1000);
+      return plusOneHour.toISOString().slice(0, 16);
+    }
+
+    function persistCountdownState() {
+      if (!targetDate || !countdownStartTime || !resetPasskeyHash) return;
+
+      const payload = {
+        goal: activeGoal,
+        note: activeGoalNote,
+        targetDateISO: targetDate.toISOString(),
+        countdownStartTime,
+        totalDurationMs,
+        resetPasskeyHash
+      };
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    }
+
+    function readPersistedCountdownState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function clearPersistedCountdownState() {
+      localStorage.removeItem(STORAGE_KEY);
     }
 
     function updateSoundToggleUI() {
@@ -1458,7 +1593,7 @@
       if (audioContext.state === 'suspended') {
         try {
           await audioContext.resume();
-        } catch (error) {
+        } catch {
           soundEnabled = false;
           updateSoundToggleUI();
         }
@@ -1559,13 +1694,6 @@
       if (soundEnabled) await resumeClockAudio();
     }
 
-    function getDefaultLocalDateTime() {
-      const now = new Date();
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-      const plusOneHour = new Date(now.getTime() + 60 * 60 * 1000);
-      return plusOneHour.toISOString().slice(0, 16);
-    }
-
     function createDigit(initialValue = '0') {
       const digit = document.createElement('div');
       digit.className = 'flip-digit';
@@ -1661,8 +1789,7 @@
     }
 
     function updateHeroUI() {
-      const goal = activeGoal || 'Your next milestone starts here';
-      goalTitleEl.textContent = goal;
+      goalTitleEl.textContent = activeGoal || 'Countdown that Never Stops';
       statGoalEl.textContent = activeGoal || 'Not set yet';
       statDeadlineEl.textContent = targetDate ? formatTargetDate(targetDate) : 'Choose a future date and time';
 
@@ -1670,7 +1797,7 @@
         goalNoteEl.textContent = activeGoalNote;
         goalNoteEl.classList.remove('is-empty');
       } else {
-        goalNoteEl.textContent = ' ';
+        goalNoteEl.textContent = '\u00A0';
         goalNoteEl.classList.add('is-empty');
       }
     }
@@ -1689,7 +1816,6 @@
       else previousTimeParts = { hours, minutes, seconds };
 
       statStatusEl.textContent = formatDaysLeft(diffMs);
-
       updateProgressUI(diffMs);
       statDeadlineEl.textContent = targetDate ? formatTargetDate(targetDate) : 'Choose a future date and time';
 
@@ -1705,27 +1831,126 @@
       }
     }
 
-    async function startCountdown(date) {
-      targetDate = date;
-      countdownStartTime = Date.now();
-      totalDurationMs = Math.max(0, targetDate.getTime() - countdownStartTime);
+    function hideSetup() {
       overlay.classList.add('hidden');
       content.classList.remove('is-idle');
-      updateHeroUI();
+    }
 
-      initClockAudio();
-      await resumeClockAudio();
+    function showSetup() {
+      overlay.classList.remove('hidden');
+      content.classList.add('is-idle');
+    }
+
+    function hideResetOverlay() {
+      resetOverlay.classList.add('hidden');
+      resetPasskeyVerify.value = '';
+      resetError.textContent = '';
+    }
+
+    function showResetOverlay() {
+      if (!resetPasskeyHash) return;
+      resetOverlay.classList.remove('hidden');
+      resetPasskeyVerify.value = '';
+      resetError.textContent = '';
+      setTimeout(() => resetPasskeyVerify.focus(), 0);
+    }
+
+    function applyCountdownState(state) {
+      activeGoal = state.goal || '';
+      activeGoalNote = state.note || '';
+      targetDate = new Date(state.targetDateISO);
+      countdownStartTime = Number(state.countdownStartTime || Date.now());
+      totalDurationMs = Number(state.totalDurationMs || Math.max(0, targetDate.getTime() - countdownStartTime));
+      resetPasskeyHash = state.resetPasskeyHash || '';
+
+      if (Number.isNaN(targetDate.getTime())) {
+        clearPersistedCountdownState();
+        return false;
+      }
+
+      updateHeroUI();
+      hideSetup();
 
       if (countdownInterval) clearInterval(countdownInterval);
-
       renderCountdown(targetDate.getTime() - Date.now(), false);
       countdownInterval = setInterval(() => {
         renderCountdown(targetDate.getTime() - Date.now(), true);
       }, 1000);
+      return true;
+    }
+
+    async function startCountdown(state) {
+      applyCountdownState(state);
+      persistCountdownState();
+      initClockAudio();
+      await resumeClockAudio();
+    }
+
+    function resetToInitialView() {
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
+
+      targetDate = null;
+      countdownStartTime = null;
+      totalDurationMs = 0;
+      activeGoal = '';
+      activeGoalNote = '';
+      resetPasskeyHash = '';
+      previousTimeParts = { hours: 0, minutes: 0, seconds: 0 };
+
+      goalInput.value = '';
+      goalNoteInput.value = '';
+      resetPasskeyInput.value = '';
+      dateInput.value = getDefaultLocalDateTime();
+      formError.textContent = '';
+
+      updateGroup(hoursGroup, 0, 2);
+      updateGroup(minutesGroup, 0, 2);
+      updateGroup(secondsGroup, 0, 2);
+      updateProgressUI(0);
+      updateHeroUI();
+      timerShell.classList.remove('live', 'complete');
+      showSetup();
+      hideResetOverlay();
+      clearPersistedCountdownState();
     }
 
     soundToggle.addEventListener('click', async () => {
       await toggleSound();
+    });
+
+    resetToggle.addEventListener('click', () => {
+      showResetOverlay();
+    });
+
+    cancelResetButton.addEventListener('click', () => {
+      hideResetOverlay();
+    });
+
+    resetForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      resetError.textContent = '';
+
+      if (!resetPasskeyHash) {
+        resetError.textContent = 'No active passkey found.';
+        return;
+      }
+
+      const enteredPasskey = resetPasskeyVerify.value.trim();
+      if (!enteredPasskey) {
+        resetError.textContent = 'Please enter the passkey.';
+        return;
+      }
+
+      const enteredHash = await hashText(enteredPasskey);
+      if (enteredHash !== resetPasskeyHash) {
+        resetError.textContent = 'Incorrect passkey.';
+        return;
+      }
+
+      resetToInitialView();
     });
 
     form.addEventListener('submit', async (event) => {
@@ -1734,14 +1959,20 @@
 
       const goalValue = goalInput.value.trim();
       const goalNoteValue = goalNoteInput.value.trim();
+      const passkeyValue = resetPasskeyInput.value.trim();
 
       if (!goalValue) {
-        formError.textContent = 'Please enter the target or goal.';
+        formError.textContent = 'Please enter the goal.';
         return;
       }
 
       if (!dateInput.value) {
         formError.textContent = 'Please choose a valid date and time.';
+        return;
+      }
+
+      if (passkeyValue.length < 4) {
+        formError.textContent = 'Reset passkey must be at least 4 characters.';
         return;
       }
 
@@ -1756,22 +1987,41 @@
         return;
       }
 
-      activeGoal = goalValue;
-      activeGoalNote = goalNoteValue;
-      await startCountdown(selected);
+      const countdownStartedAt = Date.now();
+      const payload = {
+        goal: goalValue,
+        note: goalNoteValue,
+        targetDateISO: selected.toISOString(),
+        countdownStartTime: countdownStartedAt,
+        totalDurationMs: Math.max(0, selected.getTime() - countdownStartedAt),
+        resetPasskeyHash: await hashText(passkeyValue)
+      };
+
+      await startCountdown(payload);
     });
 
-    dateInput.value = getDefaultLocalDateTime();
-    goalInput.value = '';
-    goalNoteInput.value = '';
+    (function init() {
+      dateInput.value = getDefaultLocalDateTime();
+      goalInput.value = '';
+      goalNoteInput.value = '';
+      resetPasskeyInput.value = '';
 
-    updateGroup(hoursGroup, 0, 2);
-    updateGroup(minutesGroup, 0, 2);
-    updateGroup(secondsGroup, 0, 2);
-    updateSoundToggleUI();
-    updateProgressUI(0);
-    updateHeroUI();
-    runBootLoader();
+      updateGroup(hoursGroup, 0, 2);
+      updateGroup(minutesGroup, 0, 2);
+      updateGroup(secondsGroup, 0, 2);
+      updateSoundToggleUI();
+      updateProgressUI(0);
+      updateHeroUI();
+
+      const savedState = readPersistedCountdownState();
+      if (savedState && savedState.targetDateISO && savedState.resetPasskeyHash) {
+        applyCountdownState(savedState);
+      } else {
+        showSetup();
+      }
+
+      runBootLoader();
+    })();
   </script>
 </body>
 </html>
